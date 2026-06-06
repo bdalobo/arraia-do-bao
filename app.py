@@ -2,7 +2,6 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import urllib.parse
-import base64
 
 # 1. Configuração visual da página do Arraiá
 st.set_page_config(page_title="2º Edição Arraiá do Bão", page_icon="🌽")
@@ -31,7 +30,6 @@ try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     dados_existentes = conn.read(ttl=0)
 except Exception as e:
-    # Caso a planilha mude, criamos a coluna Comprovante também
     dados_existentes = pd.DataFrame(columns=["Nome", "WhatsApp", "Comida", "Comprovante"])
 
 # 4. SISTEMA DE BLOQUEIO INDEPENDENTE
@@ -69,25 +67,20 @@ with st.form("form_arraia", clear_on_submit=True):
         else:
             comida_final = escolha_lista
             
-    # 🌟 NOVO CAMPO: Upload do Comprovante (Obrigatório - aceita PNG, JPG e JPEG)
-    comprovante_arquivo = st.file_uploader("Envie seu comprovante (Obrigatório):", type=["png", "jpg", "jpeg"])
+    # Upload do Comprovante (Obrigatório para validação no site)
+    comprovante_arquivo = st.file_uploader("Anexe seu comprovante aqui no site (Obrigatório):", type=["png", "jpg", "jpeg"])
     
     enviado = st.form_submit_button("Confirmar Prato ✨")
 
 # 6. O que acontece quando clica em confirmar
 if enviado:
-    # Verificação rígida: o comprovante_arquivo DEVE existir para o código continuar
     if nome and whatsapp and comida_final and comida_final.strip() and comprovante_arquivo is not None:
         whatsapp_limpo = "".join(filter(str.isdigit, whatsapp))
         comida_salvar = comida_final.strip()
         
-        # Converte a imagem do comprovante em texto para salvar na planilha
-        bytes_comprovante = comprovante_arquivo.read()
-        comprovante_convertido = base64.b64encode(bytes_comprovante).decode("utf-8")
-        # Criamos um identificador curto para visualização rápida se necessário
-        texto_comprovante = f"Imagem Salva ({comprovante_arquivo.name})"
+        # Salva o registro de que o arquivo foi enviado na planilha
+        texto_comprovante = f"Enviado no Site ({comprovante_arquivo.name})"
         
-        # Salva na planilha (incluindo a coluna Comprovante)
         nova_linha = pd.DataFrame([{
             "Nome": nome, 
             "WhatsApp": whatsapp_limpo, 
@@ -106,10 +99,9 @@ if enviado:
         st.rerun()
         
     else:
-        # Mensagem de erro caso falte o arquivo ou qualquer outro campo
         st.error("Por favor, preencha todos os campos e anexe o seu Comprovante! Ele é obrigatório.")
 
-# 7. Exibe a tela de sucesso e o botão do WhatsApp
+# 7. Exibe a tela de sucesso e ensina a mandar a foto no WhatsApp
 if "sucesso_nome" in st.session_state:
     s_nome = st.session_state["sucesso_nome"]
     s_comida = st.session_state["sucesso_comida"]
@@ -122,14 +114,20 @@ if "sucesso_nome" in st.session_state:
         f"*Meu WhatsApp:* {s_whatsapp}\n"
         f"*Categoria:* {s_cat}\n"
         f"*Prato escolhido:* {s_comida}\n\n"
-        f"Comprovante enviado com sucesso! Nos vemos no dia 18 de Julho! 🌽🔥"
+        f" Estou enviando a foto do meu comprovante em anexo aqui nesta conversa! 🌽🔥"
     )
     
     texto_codificado = urllib.parse.quote(mensagem)
     link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
     
-    st.success(f"Sucesso, {s_nome}! Seu comprovante foi recebido e o prato (*{s_comida}*) foi reservado.")
-    st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
-    st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
+    st.success(f"Sucesso, {s_nome}! Seus dados foram salvos e o prato (*{s_comida}*) foi reservado.")
+    
+    # Adicionamos instruções bem visíveis de como você vai receber a imagem
+    st.info("📸 **COMO ENVIAR O COMPROVANTE PARA A ORGANIZADORA:**\n\n"
+            "1. Clique no botão verde abaixo para abrir o WhatsApp.\n"
+            "2. Envie o texto de confirmação que já vai aparecer digitado.\n"
+            "3. **Anexe a foto do seu comprovante nesta mesma conversa** para que eu possa validar! 😉")
+            
+    st.link_button("👉 Abrir WhatsApp para Enviar Texto e Comprovante", link_whatsapp)
     
     del st.session_state["sucesso_nome"]
