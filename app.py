@@ -38,33 +38,34 @@ if not dados_existentes.empty and "Comida" in dados_existentes.columns:
 else:
     comidas_ocupadas = []
 
-# Filtra cada lista na sua própria caixinha, sem juntar nada
+# Filtra cada lista na sua própria caixinha
 salgados_disponiveis = [c for c in comidas_salgadas if c not in comidas_ocupadas]
 doces_disponiveis = [c for c in comidas_doces if c not in comidas_ocupadas]
 
-# 5. Mostrar o formulário na tela
+# --- ADENDO DE ATUALIZAÇÃO EM TEMPO REAL ---
+# Colocamos a escolha da categoria FORA do formulário para o site atualizar na hora do clique!
+categoria = st.radio("O que você vai trazer?", ["Quero trazer um Salgado", "Quero trazer um Doce"])
+
+comida_escolhida = None
+
+# Criamos o formulário apenas para os dados e o prato
 with st.form("form_arraia", clear_on_submit=True):
     nome = st.text_input("Seu Nome Completo:")
     whatsapp = st.text_input("Seu WhatsApp com DDD (apenas números, ex: 21999999999):")
     
-    # O convidado escolhe qual categoria quer abrir
-    categoria = st.radio("O que você vai trazer?", ["Quero trazer um Salgado", "Quero trazer um Doce"])
-    
-    comida_escolhida = None
-    
-    # Se escolher Salgado, o sistema lida apenas com a lista de salgados
+    # Se escolheu Salgado, mostra apenas a lista de salgados
     if categoria == "Quero trazer um Salgado":
         if len(salgados_disponiveis) > 0:
             comida_escolhida = st.selectbox("Escolha o seu prato Salgado:", salgados_disponiveis)
         else:
-            st.warning("Todos os salgados já foram escolhidos! Por favor, selecione a opção de Doces.")
+            st.warning("Todos os salgados já foram escolhidos! Por favor, mude lá em cima para a opção de Doces.")
             
-    # Se escolher Doce, o sistema lida apenas com a lista de doces
+    # Se escolheu Doce, mostra apenas a lista de doces
     elif categoria == "Quero trazer um Doce":
         if len(doces_disponiveis) > 0:
             comida_escolhida = st.selectbox("Escolha o seu prato Doce:", doces_disponiveis)
         else:
-            st.warning("Todos os doces já foram escolhidos! Por favor, selecione a opção de Salgados.")
+            st.warning("Todos os doces já foram escolhidos! Por favor, mude lá em cima para a opção de Salgados.")
     
     enviado = st.form_submit_button("Confirmar Prato ✨")
 
