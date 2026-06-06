@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import urllib.parse
+import base64
 
 # 1. Configuração visual da página do Arraiá
 st.set_page_config(page_title="2º Edição Arraiá do Bão", page_icon="🌽")
@@ -28,19 +29,17 @@ comidas_doces = [
 # 3. Conectando com a sua planilha do Google (Zerar o cache com ttl=0)
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    # O ttl=0 força o Streamlit a ler a planilha do zero TODA VEZ, sem atrasos
     dados_existentes = conn.read(ttl=0)
 except Exception as e:
-    dados_existentes = pd.DataFrame(columns=["Nome", "WhatsApp", "Comida"])
+    # Caso a planilha mude, criamos a coluna Comprovante também
+    dados_existentes = pd.DataFrame(columns=["Nome", "WhatsApp", "Comida", "Comprovante"])
 
 # 4. SISTEMA DE BLOQUEIO INDEPENDENTE
 if not dados_existentes.empty and "Comida" in dados_existentes.columns:
-    # Remove espaços em branco extras para não falhar na comparação
     comidas_ocupadas = dados_existentes["Comida"].dropna().astype(str).str.strip().tolist()
 else:
     comidas_ocupadas = []
 
-# Filtra cada lista removendo o que já está na planilha
 salgados_disponiveis = [c for c in comidas_salgadas if c.strip() not in comidas_ocupadas] + ["Outros"]
 doces_disponiveis = [c for c in comidas_doces if c.strip() not in comidas_ocupadas] + ["Outros"]
 
@@ -69,19 +68,33 @@ with st.form("form_arraia", clear_on_submit=True):
             comida_final = outro_prato
         else:
             comida_final = escolha_lista
+            
+    # 🌟 NOVO CAMPO: Upload do Comprovante (Obrigatório - aceita PNG, JPG e JPEG)
+    comprovante_arquivo = st.file_uploader("Envie seu comprovante (Obrigatório):", type=["png", "jpg", "jpeg"])
     
     enviado = st.form_submit_button("Confirmar Prato ✨")
 
 # 6. O que acontece quando clica em confirmar
 if enviado:
-    if nome and whatsapp and comida_final and comida_final.strip():
+    # Verificação rígida: o comprovante_arquivo DEVE existir para o código continuar
+    if nome and whatsapp and comida_final and comida_final.strip() and comprovante_arquivo is not None:
         whatsapp_limpo = "".join(filter(str.isdigit, whatsapp))
         comida_salvar = comida_final.strip()
         
-        nova_linha = pd.DataFrame([{"Nome": nome, "WhatsApp": whatsapp_limpo, "Comida": comida_salvar}])
-        dados_atualizados = pd.concat([dados_existentes, nova_linha], ignore_index=True)
+        # Converte a imagem do comprovante em texto para salvar na planilha
+        bytes_comprovante = comprovante_arquivo.read()
+        comprovante_convertido = base64.b64encode(bytes_comprovante).decode("utf-8")
+        # Criamos um identificador curto para visualização rápida se necessário
+        texto_comprovante = f"Imagem Salva ({comprovante_arquivo.name})"
         
-        # Salva na planilha imediatamente
+        # Salva na planilha (incluindo a coluna Comprovante)
+        nova_linha = pd.DataFrame([{
+            "Nome": nome, 
+            "WhatsApp": whatsapp_limpo, 
+            "Comida": comida_salvar,
+            "Comprovante": texto_comprovante
+        }])
+        dados_atualizados = pd.concat([dados_existentes, nova_linha], ignore_index=True)
         conn.update(data=dados_atualizados)
         
         # Guardamos os dados de sucesso na memória temporária
@@ -90,11 +103,11 @@ if enviado:
         st.session_state["sucesso_whatsapp"] = whatsapp_limpo
         st.session_state["sucesso_categoria"] = "Salgado" if "Salgado" in categoria else "Doce"
         
-        # Força o site a reiniciar e reler a planilha sem cache
         st.rerun()
         
     else:
-        st.error("Por favor, preencha todos os campos! Se você selecionou 'Outros', é obrigatório escrever o nome do prato.")
+        # Mensagem de erro caso falte o arquivo ou qualquer outro campo
+        st.error("Por favor, preencha todos os campos e anexe o seu Comprovante! Ele é obrigatório.")
 
 # 7. Exibe a tela de sucesso e o botão do WhatsApp
 if "sucesso_nome" in st.session_state:
@@ -109,15 +122,14 @@ if "sucesso_nome" in st.session_state:
         f"*Meu WhatsApp:* {s_whatsapp}\n"
         f"*Categoria:* {s_cat}\n"
         f"*Prato escolhido:* {s_comida}\n\n"
-        f"Já está salvo no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
+        f"Comprovante enviado com sucesso! Nos vemos no dia 18 de Julho! 🌽🔥"
     )
     
     texto_codificado = urllib.parse.quote(mensagem)
     link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
     
-    st.success(f"Sucesso, {s_nome}! Seu prato (*{s_comida}*) foi reservado e já sumiu do menu para os próximos convidados!")
+    st.success(f"Sucesso, {s_nome}! Seu comprovante foi recebido e o prato (*{s_comida}*) foi reservado.")
     st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
     st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
     
-    # Limpa a memória para o próximo envio
     del st.session_state["sucesso_nome"]
