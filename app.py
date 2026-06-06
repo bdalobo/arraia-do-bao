@@ -15,91 +15,109 @@ comidas_salgadas = [
     "Pastel de queijo", "Pastel de calabresa", "Caldo verde", 
     "Sopa de ervilha", "Canjiquinha", "Caldo de pinto", "Caldo de mocotó", 
     "Caldo de feijão", "Salgadinho", "Milho", "Mini pizza", 
-    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Pipoca Salgada", "Outros"
+    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Pipoca Salgada"
 ]
 
 comidas_doces = [
     "Bolo de chocolate", "Bolo de milho", "Bolo de fubá com goiabada", 
     "Bolo de aipim", "Paçoca", "Pé de moleque", "Brigadeiro", 
     "Pipoca doce", "Cuscuz Branco", "Curau", "Canjica", 
-    "Maçã do amor", "Algodão doce", "Arroz doce", "Outros"
+    "Maçã do amor", "Algodão doce", "Arroz doce"
 ]
 
-# 3. Conectando com a sua planilha do Google
+# 3. Conectando com a sua planilha do Google (Zerar o cache com ttl=0)
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    dados_existentes = conn.read()
+    # O ttl=0 força o Streamlit a ler a planilha do zero TODA VEZ, sem atrasos
+    dados_existentes = conn.read(ttl=0)
 except Exception as e:
     dados_existentes = pd.DataFrame(columns=["Nome", "WhatsApp", "Comida"])
 
 # 4. SISTEMA DE BLOQUEIO INDEPENDENTE
 if not dados_existentes.empty and "Comida" in dados_existentes.columns:
-    comidas_ocupadas = dados_existentes["Comida"].dropna().tolist()
+    # Remove espaços em branco extras para não falhar na comparação
+    comidas_ocupadas = dados_existentes["Comida"].dropna().astype(str).str.strip().tolist()
 else:
     comidas_ocupadas = []
 
-# Filtra cada lista na sua própria caixinha
-salgados_disponiveis = [c for c in comidas_salgadas if c not in comidas_ocupadas]
-doces_disponiveis = [c for c in comidas_doces if c not in comidas_ocupadas]
+# Filtra cada lista removendo o que já está na planilha
+salgados_disponiveis = [c for c in comidas_salgadas if c.strip() not in comidas_ocupadas] + ["Outros"]
+doces_disponiveis = [c for c in comidas_doces if c.strip() not in comidas_ocupadas] + ["Outros"]
 
-# --- ADENDO DE ATUALIZAÇÃO EM TEMPO REAL ---
-# Colocamos a escolha da categoria FORA do formulário para o site atualizar na hora do clique!
+# 5. Escolha da categoria FORA do formulário
 categoria = st.radio("O que você vai trazer?", ["Quero trazer um Salgado", "Quero trazer um Doce"])
 
-comida_escolhida = None
+comida_final = None
 
-# Criamos o formulário apenas para os dados e o prato
+# Criamos o formulário
 with st.form("form_arraia", clear_on_submit=True):
     nome = st.text_input("Seu Nome Completo:")
     whatsapp = st.text_input("Seu WhatsApp com DDD (apenas números, ex: 21999999999):")
     
-    # Se escolheu Salgado, mostra apenas a lista de salgados
     if categoria == "Quero trazer um Salgado":
-        if len(salgados_disponiveis) > 0:
-            comida_escolhida = st.selectbox("Escolha o seu prato Salgado:", salgados_disponiveis)
+        escolha_lista = st.selectbox("Escolha o seu prato Salgado:", salgados_disponiveis)
+        if escolha_lista == "Outros":
+            outro_prato = st.text_input("Escreva aqui qual SALGADO diferente você vai trazer (Obrigatório):")
+            comida_final = outro_prato
         else:
-            st.warning("Todos os salgados já foram escolhidos! Por favor, mude lá em cima para a opção de Doces.")
+            comida_final = escolha_lista
             
-    # Se escolheu Doce, mostra apenas a lista de doces
     elif categoria == "Quero trazer um Doce":
-        if len(doces_disponiveis) > 0:
-            comida_escolhida = st.selectbox("Escolha o seu prato Doce:", doces_disponiveis)
+        escolha_lista = st.selectbox("Escolha o seu prato Doce:", doces_disponiveis)
+        if escolha_lista == "Outros":
+            outro_prato = st.text_input("Escreva aqui qual DOCE diferente você vai trazer (Obrigatório):")
+            comida_final = outro_prato
         else:
-            st.warning("Todos os doces já foram escolhidos! Por favor, mude lá em cima para a opção de Salgados.")
+            comida_final = escolha_lista
     
     enviado = st.form_submit_button("Confirmar Prato ✨")
 
 # 6. O que acontece quando clica em confirmar
 if enviado:
-    if nome and whatsapp and comida_escolhida:
+    if nome and whatsapp and comida_final and comida_final.strip():
         whatsapp_limpo = "".join(filter(str.isdigit, whatsapp))
+        comida_salvar = comida_final.strip()
         
-        nova_linha = pd.DataFrame([{"Nome": nome, "WhatsApp": whatsapp_limpo, "Comida": comida_escolhida}])
+        nova_linha = pd.DataFrame([{"Nome": nome, "WhatsApp": whatsapp_limpo, "Comida": comida_salvar}])
         dados_atualizados = pd.concat([dados_existentes, nova_linha], ignore_index=True)
         
-        # Salva na planilha
+        # Salva na planilha imediatamente
         conn.update(data=dados_atualizados)
         
-        # Mensagem do WhatsApp
-        tipo_comida = "Salgado" if "Salgado" in categoria else "Doce"
-        mensagem = (
-            f"Olá! 🎉 Vim confirmar minha presença no *2º Edição Arraiá do Bão*!\n\n"
-            f"*Nome:* {nome}\n"
-            f"*Meu WhatsApp:* {whatsapp_limpo}\n"
-            f"*Categoria:* {tipo_comida}\n"
-            f"*Prato escolhido:* {comida_escolhida}\n\n"
-            f"Já está salvo no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
-        )
+        # Guardamos os dados de sucesso na memória temporária
+        st.session_state["sucesso_nome"] = nome
+        st.session_state["sucesso_comida"] = comida_salvar
+        st.session_state["sucesso_whatsapp"] = whatsapp_limpo
+        st.session_state["sucesso_categoria"] = "Salgado" if "Salgado" in categoria else "Doce"
         
-        texto_codificado = urllib.parse.quote(mensagem)
-        link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
+        # Força o site a reiniciar e reler a planilha sem cache
+        st.rerun()
         
-        st.success(f"Sucesso, {nome}! Seu prato (*{comida_escolhida}*) foi reservado.")
-        st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
-        
-        st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
-        
-    elif not comida_escolhida:
-        st.error("Não há opções disponíveis na categoria selecionada.")
     else:
-        st.error("Por favor, preencha o seu Nome e o seu WhatsApp antes de confirmar!")
+        st.error("Por favor, preencha todos os campos! Se você selecionou 'Outros', é obrigatório escrever o nome do prato.")
+
+# 7. Exibe a tela de sucesso e o botão do WhatsApp
+if "sucesso_nome" in st.session_state:
+    s_nome = st.session_state["sucesso_nome"]
+    s_comida = st.session_state["sucesso_comida"]
+    s_whatsapp = st.session_state["sucesso_whatsapp"]
+    s_cat = st.session_state["sucesso_categoria"]
+    
+    mensagem = (
+        f"Olá! 🎉 Vim confirmar minha presença no *2º Edição Arraiá do Bão*!\n\n"
+        f"*Nome:* {s_nome}\n"
+        f"*Meu WhatsApp:* {s_whatsapp}\n"
+        f"*Categoria:* {s_cat}\n"
+        f"*Prato escolhido:* {s_comida}\n\n"
+        f"Já está salvo no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
+    )
+    
+    texto_codificado = urllib.parse.quote(mensagem)
+    link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
+    
+    st.success(f"Sucesso, {s_nome}! Seu prato (*{s_comida}*) foi reservado e já sumiu do menu para os próximos convidados!")
+    st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
+    st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
+    
+    # Limpa a memória para o próximo envio
+    del st.session_state["sucesso_nome"]
