@@ -35,7 +35,7 @@ comidas_disponiveis = [c for c in todas_comidas if c not in comidas_ocupadas]
 
 # 5. Mostrar o formulário na tela para o convidado preencher
 if len(comidas_disponiveis) == 0:
-    st.warning("Eita! Todas as comidas da lista já foram escolhidas! 🎉")
+    st.warning("Eita! Todas as comidas da lista já foram escolheram! 🎉")
 else:
     # Criamos o formulário
     with st.form("form_arraia", clear_on_submit=True):
@@ -48,7 +48,7 @@ else:
     # 6. O que acontece quando o convidado clica no botão de confirmar
     if enviado:
         if nome and whatsapp and comida_escolhida:
-            # Remove espaços ou traços que o convidado possa ter digitado no telefone
+            # Remove espaços ou traços que o convidado possa ter digitado no telefone dele
             whatsapp_limpo = "".join(filter(str.isdigit, whatsapp))
             
             # Prepara os dados para salvar na planilha do Google
@@ -58,27 +58,25 @@ else:
             # Salva na planilha de verdade!
             conn.update(data=dados_atualizados)
             
-            # --- FUNÇÃO DO WHATSAPP DO ZERO ---
-            # Escrevemos a mensagem pulando linhas (\n) e colocando em negrito (*)
+            # --- FUNÇÃO DO WHATSAPP DIRECIONADA PARA VOCÊ ---
+            # Escrevemos a mensagem que você vai receber no seu celular
             mensagem = (
-                f"Olá! 🎉 Confirmação automática do *2º Edição Arraiá do Bão*!\n\n"
+                f"Olá! 🎉 Vim confirmar minha presença no *2º Edição Arraiá do Bão*!\n\n"
                 f"*Nome:* {nome}\n"
+                f"*Meu WhatsApp:* {whatsapp_limpo}\n"
                 f"*Prato escolhido:* {comida_escolhida}\n\n"
-                f"Sua escolha foi salva no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
+                f"Já está salvo no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
             )
             
-            # Codifica o texto para formato de link de internet (remove espaços em branco)
+            # Codifica o texto para formato de link de internet
             texto_codificado = urllib.parse.quote(mensagem)
             
-            # Cria o link mágico que abre o WhatsApp do próprio convidado com o texto pronto
-            link_whatsapp = f"https://api.whatsapp.com/send?phone=55{whatsapp_limpo}&text={texto_codificado}"
+            # Link configurado diretamente com o SEU número de telefone
+            link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
             
             # Mostra a mensagem de sucesso e o botão verde do WhatsApp na tela
-            st.success(f"Sucesso, {nome}! Seu prato (*{comida_escolhida}*) foi reservado com sucesso.")
-            st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para abrir seu WhatsApp e enviar sua confirmação oficial!")
+            st.success(f"Sucesso, {nome}! Seu prato (*{comida_escolhida}*) foi reservado.")
+            st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
             
-            # Esse botão abre o WhatsApp com a mensagem criada lá em cima
-            st.link_button("👉 Abrir WhatsApp para Confirmar", link_whatsapp)
-            
-        else:
-            st.error("Por favor, preencha o seu Nome e o seu WhatsApp antes de confirmar!")
+            # Esse botão abre o SEU WhatsApp com a mensagem pronta na tela do convidado
+            st.link_button("
