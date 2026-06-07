@@ -15,7 +15,7 @@ comidas_salgadas = [
     "Pastel de queijo", "Pastel de calabresa", "Caldo verde", 
     "Sopa de ervilha", "Canjiquinha", "Caldo de pinto", "Caldo de mocotó", 
     "Caldo de feijão", "Salgadinho", "Milho", "Mini pizza", 
-    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Sanduíche","Salgadinho assado","Pipoca Salgada,"Quiche"
+    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Sanduíche","Salgadinho assado","Pipoca Salgada,"Quiche",
 ]
 
 comidas_doces = [
