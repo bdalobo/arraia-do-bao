@@ -23,7 +23,7 @@ comidas_doces = [
     "Bolo de chocolate", "Bolo de milho", "Bolo de fubá com goiabada", 
     "Bolo de aipim", "Paçoca", "Pé de moleque", "Brigadeiro", 
     "Pipoca doce", "Cuscuz Branco", "Curau", "Canjica", 
-    "Maçã do amor", "Algodão doce", "Arroz doce"
+    "Maçã do amor", "Algodão doce", "Arroz doce","Paçoca"
 ]
 
 # 3. Conectando com a sua planilha do Google (Zerar o cache com ttl=0)
