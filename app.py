@@ -6,11 +6,10 @@ import urllib.parse
 # 1. Configuração visual da página do Arraiá
 st.set_page_config(page_title="2º Edição Arraiá do Bão", page_icon="🌽")
 
-# 🔥 FORÇAR O MENU A ABRIR PARA BAIXO SEM ALTERAR O FORMULÁRIO
+# Configuração visual interna para o menu abrir para baixo
 st.markdown(
     """
     <style>
-    /* Força uma altura mínima no aplicativo para garantir espaço embaixo */
     .stApp {
         min-height: 1200px !important;
         padding-bottom: 350px !important;
@@ -117,7 +116,27 @@ if "sucesso_nome" in st.session_state:
     s_whatsapp = st.session_state["sucesso_whatsapp"]
     s_cat = st.session_state["sucesso_categoria"]
     
+    # Texto corrigido em uma única linha para evitar erros de compilação
     mensagem = f"Olá! 🎉 Vim confirmar minha presença no *2º Edição Arraiá do Bão*!\n\n*Nome:* {s_nome}\n*Meu WhatsApp:* {s_whatsapp}\n*Categoria:* {s_cat}\n*Prato escolhido:* {s_comida}\n\nJá está salvo no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
     
     texto_codificado = urllib.parse.quote(mensagem)
-    link_whatsapp = f"https://
+    link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
+    
+    st.success(f"Sucesso, {s_nome}! Seu prato (*{s_comida}*) foi reservado com sucesso!")
+    st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
+    st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
+    
+    del st.session_state["sucesso_nome"]
+
+# 8. MURAL PÚBLICO: QUADRO DE COMIDAS JÁ ESCOLHIDAS
+st.write("---")
+st.subheader("📋 Quem já confirmou e o que vai trazer:")
+
+if not dados_existentes.empty:
+    mural_dados = dados_existentes.copy()
+    if "Nome" in mural_dados.columns and "Comida" in mural_dados.columns:
+        tabela_publica = mural_dados[["Nome", "Comida"]].copy()
+        tabela_publica.columns = ["Convidado(a)", "Prato Confirmado 🍽️"]
+        st.dataframe(tabela_publica, use_container_width=True, hide_index=True)
+else:
+    st.info("Ainda não temos pratos confirmados. Seja o primeiro! 🥳")
