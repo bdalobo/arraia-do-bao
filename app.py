@@ -6,19 +6,12 @@ import urllib.parse
 # 1. Configuração visual da página do Arraiá
 st.set_page_config(page_title="2º Edição Arraiá do Bão", page_icon="🌽")
 
-# 🔥 FORÇAR ESPAÇO PARA O MENU ABRIR PARA BAIXO
+# 🛠️ CORREÇÃO IMEDIATA DO MENU: Força espaço para ele abrir para baixo
 st.markdown(
     """
     <style>
-    /* Força a área do app a ter espaço de sobra no fundo */
-    .stApp {
-        min-height: 1600px !important;
-        padding-bottom: 500px !important;
-    }
-    /* Garante que o dropdown tenha prioridade visual */
-    div[data-baseweb="select"] {
-        z-index: 999999 !important;
-    }
+    .stApp { min-height: 1500px !important; padding-bottom: 400px !important; }
+    div[data-baseweb="select"] { z-index: 999999 !important; }
     </style>
     """,
     unsafe_allow_html=True
@@ -27,7 +20,7 @@ st.markdown(
 st.title("🌽 2º Edição Arraiá do Bão 🔥")
 st.write("Escolha o que você vai trazer para a nossa festa no dia 18 de Julho de 2026! Coloque seu nome na opção desejada.")
 
-# 2. SEU CARDÁPIO TOTALMENTE ATUALIZADO
+# 2. SEU CARDÁPIO ORIGINAL E SEPARADO
 comidas_salgadas = [
     "Cachorro quente", "Cachorro quente de forno", "Pastel de Carne", 
     "Pastel de queijo", "Pastel de calabresa", "Caldo verde", 
@@ -53,63 +46,63 @@ except Exception as e:
 
 # 4. SISTEMA DE BLOQUEIO INDEPENDENTE
 if not dados_existentes.empty and "Comida" in dados_existentes.columns:
-    comidas_ocupadas = [
-        c.strip().lower() for c in dados_existentes["Comida"].dropna().astype(str)
-    ]
+    comidas_ocupadas = [c.strip().lower() for c in dados_existentes["Comida"].dropna().astype(str)]
 else:
     comidas_ocupadas = []
 
-# Criamos as listas já filtradas
-salgados_filtrados = [f"Salgado: {c}" for c in comidas_salgadas if c.strip().lower() not in comidas_ocupadas]
-doces_filtrados = [f"Doce: {c}" for c in comidas_doces if c.strip().lower() not in comidas_ocupadas]
+salgados_disponiveis = [c for c in comidas_salgadas if c.strip().lower() not in comidas_ocupadas] + ["Outros"]
+doces_disponiveis = [c for c in comidas_doces if c.strip().lower() not in comidas_ocupadas] + ["Outros"]
 
-# Juntamos tudo em uma lista única
-lista_completa_pratos = salgados_filtrados + ["Outros Salgados"] + doces_filtrados + ["Outros Doces"]
+# 5. Escolha da categoria SEPARADA (Como você prefere)
+categoria = st.radio("O que você vai trazer?", ["Quero trazer um Salgado", "Quero trazer um Doce"])
 
-# 5. Criamos o formulário COMPLETO
+comida_final = None
+
+# Criamos o formulário original
 with st.form("form_arraia", clear_on_submit=True):
     nome = st.text_input("Seu Nome Completo:")
     whatsapp = st.text_input("Seu WhatsApp com DDD (apenas números, ex: 21999999999):")
     
-    # Seleção do prato unificada
-    escolha_prato = st.selectbox("Escolha o que você vai trazer (Salgados ou Doces):", lista_completa_pratos)
-    
-    # Campo de texto livre para especificar pratos novos
-    especificar_outros = st.text_input("Se escolheu 'Outros Salgados' ou 'Outros Doces', escreva o nome do prato aqui:")
+    if categoria == "Quero trazer um Salgado":
+        escolha_lista = st.selectbox("Escolha o seu prato Salgado:", salgados_disponiveis)
+        if escolha_lista == "Outros":
+            outro_prato = st.text_input("Escreva aqui qual SALGADO diferente você vai trazer (Obrigatório):")
+            comida_final = outro_prato
+        else:
+            comida_final = escolha_lista
+            
+    elif categoria == "Quero trazer um Doce":
+        escolha_lista = st.selectbox("Escolha o seu prato Doce:", doces_disponiveis)
+        if escolha_lista == "Outros":
+            outro_prato = st.text_input("Escreva aqui qual DOCE diferente você vai trazer (Obrigatório):")
+            comida_final = outro_prato
+        else:
+            comida_final = escolha_lista
     
     enviado = st.form_submit_button("Confirmar Prato ✨")
 
 # 6. O que acontece quando clica em confirmar
 if enviado:
-    if nome and whatsapp:
-        comida_final = ""
-        
-        if "Outros" in escolha_prato:
-            if especificar_outros.strip() and especificar_outros.strip().lower() not in ["outros", "outros salgados", "outros doces"]:
-                comida_final = especificar_outros.strip()
-                categoria_sucesso = "Salgado" if "Salgados" in escolha_prato else "Doce"
-            else:
-                st.error("Por favor, especifique o nome real do prato no campo de texto livre!")
-                st.stop()
+    if nome and whatsapp and comida_final and comida_final.strip():
+        if comida_final.strip().lower() in ["outros", "outros salgados", "outros doces"]:
+            st.error("Por favor, especifique o nome real do prato!")
         else:
-            comida_final = escolha_prato.split(": ")[1]
-            categoria_sucesso = "Salgado" if "Salgado:" in escolha_prato else "Doce"
-
-        if comida_final:
             whatsapp_limpo = "".join(filter(str.isdigit, whatsapp))
-            nova_linha = pd.DataFrame([{"Nome": nome, "WhatsApp": whatsapp_limpo, "Comida": comida_final}])
+            comida_salvar = comida_final.strip()
+            
+            nova_linha = pd.DataFrame([{"Nome": nome, "WhatsApp": whatsapp_limpo, "Comida": comida_salvar}])
             dados_atualizados = pd.concat([dados_existentes, nova_linha], ignore_index=True)
             
             conn.update(data=dados_atualizados)
             
             st.session_state["sucesso_nome"] = nome
-            st.session_state["sucesso_comida"] = comida_final
+            st.session_state["sucesso_comida"] = comida_salvar
             st.session_state["sucesso_whatsapp"] = whatsapp_limpo
-            st.session_state["sucesso_categoria"] = categoria_sucesso
+            st.session_state["sucesso_categoria"] = "Salgado" if "Salgado" in categoria else "Doce"
             
             st.rerun()
     else:
-        st.error("Por favor, preencha o seu Nome e o seu WhatsApp!")
+        st.error("Por favor, preencha todos os campos! Se você selecionou 'Outros', é obrigatório escrever o nome do prato.")
 
 # 7. Exibe a tela de sucesso e o botão do WhatsApp
 if "sucesso_nome" in st.session_state:
@@ -122,13 +115,13 @@ if "sucesso_nome" in st.session_state:
     texto_codificado = urllib.parse.quote(mensagem)
     link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
     
-    st.success(f"Sucesso, {s_nome}! Seu prato (*{s_comida}*) foi reservado com sucesso!")
+    st.success(f"Sucesso, {s_nome}! Seu prato (*{s_comida}*) foi reservado!")
     st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
     st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
     
     del st.session_state["sucesso_nome"]
 
-# 8. MURAL PÚBLICO: QUADRO DE COMIDAS JÁ ESCOLHIDAS
+# 8. MURAL PÚBLICO
 st.write("---")
 st.subheader("📋 Quem já confirmou e o que vai trazer:")
 
@@ -141,5 +134,4 @@ if not dados_existentes.empty:
 else:
     st.info("Ainda não temos pratos confirmados. Seja o primeiro! 🥳")
 
-# Mantemos as quebras de linha como margem de segurança extra
-st.write("\n" * 10)
+st.write("\n" * 15)
