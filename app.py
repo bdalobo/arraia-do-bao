@@ -15,14 +15,14 @@ comidas_salgadas = [
     "Pastel de queijo", "Pastel de calabresa", "Caldo verde", 
     "Sopa de ervilha", "Canjiquinha", "Caldo de pinto", "Caldo de mocotó", 
     "Caldo de feijão", "Salgadinho", "Milho", "Mini pizza", 
-    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Pipoca Salgada"
+    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Sanduíche","Salgadinho assado","Pipoca Salgada,"Quiche"
 ]
 
 comidas_doces = [
     "Bolo de chocolate", "Bolo de milho", "Bolo de fubá com goiabada", 
     "Bolo de aipim", "Paçoca", "Pé de moleque", "Brigadeiro", 
     "Pipoca doce", "Cuscuz Branco", "Curau", "Canjica", 
-    "Maçã do amor", "Algodão doce", "Arroz doce"
+    "Maçã do amor", "Algodão doce", "Arroz doce,"Palha italiana, "Paçoca"
 ]
 
 # 3. Conectando com a sua planilha do Google (Zerar o cache com ttl=0)
