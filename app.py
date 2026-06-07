@@ -9,13 +9,14 @@ st.set_page_config(page_title="2º Edição Arraiá do Bão", page_icon="🌽")
 st.title("🌽 2º Edição Arraiá do Bão 🔥")
 st.write("Escolha o que você vai trazer para a nossa festa no dia 18 de Julho de 2026! Coloque seu nome na opção desejada.")
 
-# 2. SEU CARDÁPIO TOTALMENTE SEPARADO
+# 2. SEU CARDÁPIO ATUALIZADO E TOTALMENTE SEPARADO
 comidas_salgadas = [
     "Cachorro quente", "Cachorro quente de forno", "Pastel de Carne", 
     "Pastel de queijo", "Pastel de calabresa", "Caldo verde", 
     "Sopa de ervilha", "Canjiquinha", "Caldo de pinto", "Caldo de mocotó", 
     "Caldo de feijão", "Salgadinho", "Milho", "Mini pizza", 
-    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Pipoca Salgada"
+    "Torta de frango", "Torta de sardinha", "Empadão de frango", "Pipoca Salgada",
+    "Quiche", "Salgadinho assado", "Frios", "Torta salgada", "Cuscuz amarelo"
 ]
 
 comidas_doces = [
@@ -76,10 +77,10 @@ if enviado:
         comida_salvar = comida_final.strip()
         
         nova_linha = pd.DataFrame([{"Nome": nome, "WhatsApp": whatsapp_limpo, "Comida": comida_salvar}])
-        dados_atualizados = pd.concat([dados_existentes, nova_linha], ignore_index=True)
+        dados_updated = pd.concat([dados_existentes, nova_linha], ignore_index=True)
         
         # Salva na planilha imediatamente
-        conn.update(data=dados_atualizados)
+        conn.update(data=dados_updated)
         
         # Guardamos os dados de sucesso na memória temporária
         st.session_state["sucesso_nome"] = nome
@@ -104,37 +105,4 @@ if "sucesso_nome" in st.session_state:
         f"*Nome:* {s_nome}\n"
         f"*Meu WhatsApp:* {s_whatsapp}\n"
         f"*Categoria:* {s_cat}\n"
-        f"*Prato escolhido:* {s_comida}\n\n"
-        f"Já está salvo no sistema! Nos vemos no dia 18 de Julho! 🌽🔥"
-    )
-    
-    texto_codificado = urllib.parse.quote(mensagem)
-    link_whatsapp = f"https://api.whatsapp.com/send?phone=5521999161661&text={texto_codificado}"
-    
-    st.success(f"Sucesso, {s_nome}! Seu prato (*{s_comida}*) foi reservado e já sumiu do menu para os próximos convidados!")
-    st.write("📢 **ÚLTIMO PASSO OBRIGATÓRIO:** Clique no botão abaixo para me enviar sua confirmação direto no meu WhatsApp!")
-    st.link_button("👉 Enviar Confirmação no WhatsApp da Organizadora", link_whatsapp)
-    
-    del st.session_state["sucesso_nome"]
-
-# -------------------------------------------------------------------------
-# 8. MURAL PÚBLICO: QUADRO DE COMIDAS JÁ ESCOLHIDAS (Fica visível para todos)
-st.write("---")
-st.subheader("📋 Quem já confirmou e o que vai trazer:")
-
-if not dados_existentes.empty:
-    # Criamos uma cópia dos dados para não mexer na planilha original
-    mural_dados = dados_existentes.copy()
-    
-    # Se a coluna existir, vamos organizar as colunas bonitinhas para o público
-    if "Nome" in mural_dados.columns and "Comida" in mural_dados.columns:
-        # Criamos uma tabela mostrando apenas o Nome e o Prato Escolhido (escondendo o WhatsApp)
-        tabela_publica = mural_dados[["Nome", "Comida"]].copy()
-        
-        # Renomeia os títulos das colunas para ficar elegante na tela
-        tabela_publica.columns = ["Convidado(a)", "Prato Confirmado 🍽️"]
-        
-        # Mostra o quadro na tela em formato de tabela estilizada
-        st.dataframe(tabela_publica, use_container_width=True, hide_index=True)
-else:
-    st.info("Ainda não temos pratos confirmados. Seja o primeiro! 🥳")
+        f"*Prato escolhido:* {s_comida}\n\
